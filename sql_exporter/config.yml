@@ -1,0 +1,218 @@
+---
+jobs:
+- name: "materialize"
+  interval: '1m'
+  connections:
+  - "postgres://username%40domain.com@servername.lb.us-east-1.aws.materialize.cloud:6875/materialize?sslmode=require"
+  queries:
+  - name: "cluster_replicas"
+    help: "Cluster replica info"
+    labels:
+      - "cluster_id"
+      - "replica_id"
+      - "cluster_name"
+      - "replica_name"
+      - "size"
+    values:
+      - "count"
+    query:  |
+              SELECT 
+                  c.id::text as cluster_id,
+                  r.id::text as replica_id,
+                  c.name::text as cluster_name,
+                  r.name::text as replica_name,
+                  r.size::text as size,
+                  '1'::float as count
+              FROM mz_catalog.mz_clusters c
+                  JOIN mz_catalog.mz_cluster_replicas r on c.id = r.cluster_id
+              WHERE r.id like 'u%';
+  - name: "replica_uptime"
+    help: "Uptime Per Cluster Replica"
+    labels:
+      - "replica_id"
+      - "cluster_name"
+      - "replica_name"
+    values:
+      - "container_start_time_seconds"
+    query:  |
+              SELECT
+                  r.name :: TEXT AS replica_name,
+                  c.name :: TEXT AS cluster_name,
+                  s.replica_id :: TEXT AS replica_id,
+                  extract(
+                      epoch
+                      FROM
+                          max(s.updated_at)
+                  ) :: FLOAT AS container_start_time_seconds
+              FROM
+                  mz_internal.mz_cluster_replica_statuses s
+                  JOIN mz_catalog.mz_cluster_replicas r ON s.replica_id = r.id
+                  JOIN mz_catalog.mz_clusters c ON r.cluster_id = c.id
+              WHERE
+                  STATUS = 'ready'
+                  AND replica_id LIKE 'u%'
+              GROUP BY
+                  replica_id,
+                  r.name,
+                  c.name;           
+  - name: "cluster_replica_usage"
+    help: "Cluster replica metrics"
+    labels:
+      - "replica_id"
+      - "cluster_id"
+      - "cluster_name"
+      - "replica_name"
+      - "cluster_type"
+      - "replica_status_label"
+      - "not_ready_reason"
+    values:
+      - "cpu_percent"
+      - "memory_percent"
+      - "disk_percent"
+      - "used_memory_bytes"
+      - "used_disk_bytes"
+      - "used_cpu_nano_cores"
+      - "total_memory_bytes"
+      - "total_disk_bytes"
+      - "total_cpu_nano_cores"
+      - "credits_per_hour"
+      - "replica_status"
+    query:  |
+            SELECT
+              DISTINCT(U.replica_id),
+              R.cluster_id,
+              C.name as cluster_name,
+              R.name as replica_name,
+              RST.status as replica_status_label,
+              COALESCE(RST.reason, '') as not_ready_reason,
+              M.memory_bytes::float as used_memory_bytes,
+              M.disk_bytes::float as used_disk_bytes,
+              M.cpu_nano_cores::float as used_cpu_nano_cores,
+              RS.memory_bytes::float as total_memory_bytes,
+              RS.disk_bytes::float as total_disk_bytes,
+              RS.cpu_nano_cores::float as total_cpu_nano_cores,
+              U.cpu_percent::float,
+              U.memory_percent::float,
+              U.disk_percent::float,
+              RS.credits_per_hour::float,
+              CASE RST.status
+                WHEN 'ready' THEN 1
+                ELSE 0
+              END AS replica_status,
+              CASE
+                WHEN S.cluster_id IS NOT NULL THEN 'source'
+                WHEN SK.cluster_id IS NOT NULL THEN 'sink'
+                ELSE 'compute'
+              END AS cluster_type
+            FROM mz_internal.mz_cluster_replica_utilization U
+            JOIN mz_catalog.mz_cluster_replicas R ON (U.replica_id = R.id)
+            JOIN mz_catalog.mz_clusters C ON (R.cluster_id = C.id)
+            JOIN mz_catalog.mz_cluster_replica_sizes RS ON (R.size = RS.size)
+            JOIN mz_internal.mz_cluster_replica_metrics M ON (U.replica_id = M.replica_id)
+            JOIN mz_internal.mz_cluster_replica_statuses RST ON (RST.replica_id = R.id)
+            LEFT JOIN mz_catalog.mz_sources S ON (C.id = S.cluster_id)
+            LEFT JOIN mz_catalog.mz_sinks SK ON (C.id = SK.cluster_id);
+  - name: "source_statistics"
+    help: "Source statistics"
+    labels:
+      - "source_id"
+      - "source_name"
+    values:
+      - "updates_committed"
+      - "rehydration_latency_seconds"
+      - "offset_known"
+      - "offset_committed"
+    query: |
+        SELECT
+          s.id::TEXT as source_id,
+          so.name::TEXT as source_name,
+          s.updates_committed::FLOAT,
+          COALESCE(extract(seconds from s.rehydration_latency)::FLOAT, 0) as rehydration_latency_seconds,
+          s.offset_known::FLOAT,
+          s.offset_committed::FLOAT
+        FROM
+          mz_internal.mz_source_statistics s
+          JOIN mz_catalog.mz_sources so ON so.id = s.id;
+  - name: "sink_statistics"
+    help: "Sink statistics"
+    labels:
+      - "sink_id"
+      - "sink_name"
+      - "sink_type"
+      - "cluster_name"
+      - "sink_status_label"
+    values:
+      - "messages_committed"
+      - "messages_staged"
+    query: |
+            SELECT
+              S.id::TEXT as sink_id,
+              S.name::TEXT as sink_name,
+              S.type::TEXT as sink_type,
+              status::TEXT as sink_status_label,
+              messages_committed::FLOAT,
+              messages_staged::FLOAT
+            FROM mz_internal.mz_sink_statistics SS
+            JOIN mz_catalog.mz_sinks S ON (SS.id = S.id)
+            JOIN mz_internal.mz_sink_statuses ST ON (S.id = ST.id)
+  - name: "query_latency"
+    help: "Query latency"
+    labels:
+      - "cluster_name"
+      - "replica_name"
+      - "cluster_id"
+      - "replica_id"
+    values:
+      - "max_latency"
+      - "min_latency"
+      - "avg_latency"
+    query: |
+            SELECT
+              COALESCE(max(extract(epoch from MSEH.finished_at)::text::float * 1000 - extract(epoch from MSEH.began_at)::text::float * 1000)::text::float, 0.0) as max_latency,
+              COALESCE(min(extract(epoch from MSEH.finished_at)::text::float * 1000 - extract(epoch from MSEH.began_at)::text::float * 1000)::text::float, 0.0) as min_latency,
+              COALESCE(avg(extract(epoch from MSEH.finished_at)::text::float * 1000 - extract(epoch from MSEH.began_at)::text::float * 1000)::text::float, 0.0) as avg_latency,
+              MSEH.cluster_name,
+              MSEH.cluster_id,
+              R.name as replica_name,
+              R.id as replica_id
+            FROM mz_catalog.mz_cluster_replicas as R
+            JOIN mz_internal.mz_recent_activity_log_redacted as MSEH
+              ON R.cluster_id = MSEH.cluster_id
+
+            WHERE MSEH.began_at > now() - interval '1 min'
+              AND MSEH.prepared_at > now() - interval '1 min'
+              AND SUBSTRING(R.cluster_id, 1, 1) != 's'
+            GROUP BY MSEH.cluster_name, MSEH.cluster_id, R.name, R.id;
+  - name: "object_freshness"
+    help: "Freshness"
+    labels:
+      - "cluster_name"
+      - "replica_name"
+      - "replica_id"
+      - "cluster_id"
+      - "object_name"
+      - "object_type"
+      - "object_id"
+    values:
+      - "write_frontier"
+      - "approx_lag_ms"
+    query: |
+            SELECT
+              COALESCE(f.write_frontier, 0) as write_frontier,
+              o.name as object_name,
+              o.type as object_type,
+              COALESCE(mz_now()::text::float - f.write_frontier::text::float, 0) as approx_lag_ms,
+              C.name as cluster_name,
+              R.name as replica_name,
+              C.id as cluster_id,
+              R.id as replica_id,
+              F.object_id as object_id
+            FROM mz_internal.mz_cluster_replica_frontiers as F
+            JOIN mz_catalog.mz_cluster_replicas as R
+              on R.id = F.replica_id
+            JOIN mz_catalog.mz_clusters as C
+              on R.cluster_id = C.id
+            JOIN mz_catalog.mz_objects as O
+              on F.object_id = O.id
+            -- Filter the system's catalog.
+            WHERE substring(O.schema_id, 0, 2) != 's';
