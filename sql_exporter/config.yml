@@ -49,7 +49,7 @@ jobs:
                   JOIN mz_catalog.mz_cluster_replicas r ON s.replica_id = r.id
                   JOIN mz_catalog.mz_clusters c ON r.cluster_id = c.id
               WHERE
-                  STATUS = 'ready'
+                  s.status = 'online'
                   AND replica_id LIKE 'u%'
               GROUP BY
                   replica_id,
@@ -96,7 +96,7 @@ jobs:
               U.disk_percent::float,
               RS.credits_per_hour::float,
               CASE RST.status
-                WHEN 'ready' THEN 1
+                WHEN 'offline' THEN 1
                 ELSE 0
               END AS replica_status,
               CASE
@@ -207,7 +207,7 @@ jobs:
               C.id as cluster_id,
               R.id as replica_id,
               F.object_id as object_id
-            FROM mz_internal.mz_cluster_replica_frontiers as F
+            FROM mz_catalog.mz_cluster_replica_frontiers as F
             JOIN mz_catalog.mz_cluster_replicas as R
               on R.id = F.replica_id
             JOIN mz_catalog.mz_clusters as C
