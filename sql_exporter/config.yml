@@ -77,6 +77,7 @@ jobs:
       - "total_cpu_nano_cores"
       - "credits_per_hour"
       - "replica_status"
+      - "memory_utilization_percent"
     query:  |
             SELECT
               DISTINCT(U.replica_id),
@@ -91,6 +92,7 @@ jobs:
               RS.memory_bytes::float as total_memory_bytes,
               RS.disk_bytes::float as total_disk_bytes,
               RS.cpu_nano_cores::float as total_cpu_nano_cores,
+              U.heap_percent::float as memory_utilization_percent,
               U.cpu_percent::float,
               U.memory_percent::float,
               U.disk_percent::float,
