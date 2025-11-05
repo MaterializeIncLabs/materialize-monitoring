@@ -1,0 +1,33 @@
+# OpenMetrics Check Configuration for Materialize SQL Exporter
+# Documentation: https://materialize.com/docs/manage/monitor/cloud/datadog/
+# This configuration follows the official Materialize recommendation
+
+init_config:
+  # Timeout for collecting metrics (per Materialize docs)
+  timeout: 50
+
+instances:
+  # SQL Exporter endpoint
+  - openmetrics_endpoint: http://sql_exporter:9237/metrics
+
+    # Namespace for all Materialize metrics (per Materialize docs)
+    namespace: "materialize"
+
+    # Collect all metrics exposed by the SQL Exporter
+    # The SQL Exporter exposes ~24 base metrics with various labels
+    # Total metric count should be well under the 2000 metric limit
+    metrics:
+      - ".*"
+
+    # Tags to apply to all metrics from this endpoint
+    tags:
+      - source:materialize
+      - exporter:sql_exporter
+      - environment:local
+
+    # Enable metadata collection
+    send_distribution_buckets: true
+    send_distribution_counts_as_monotonic: true
+
+    # Timeout for individual metric collection
+    timeout: 50

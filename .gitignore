@@ -1,0 +1,24 @@
+# Environment variables
+.env
+
+# Docker volumes
+prometheus_data/
+grafana_data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
