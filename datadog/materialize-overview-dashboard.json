@@ -68,7 +68,7 @@
             "aggregator": "avg"
           }
         ],
-        "title": "Avg CPU Utilization % (No Data - Query Needs Fix)",
+        "title": "Avg CPU Utilization %",
         "title_size": "16",
         "title_align": "left",
         "precision": 1,
@@ -92,7 +92,7 @@
             "aggregator": "avg"
           }
         ],
-        "title": "Avg Memory Utilization % (No Data - Query Needs Fix)",
+        "title": "Avg Memory Utilization %",
         "title_size": "16",
         "title_align": "left",
         "precision": 1,
@@ -115,7 +115,7 @@
             "aggregator": "avg"
           }
         ],
-        "title": "Avg Disk Utilization % (No Data - Query Needs Fix)",
+        "title": "Avg Disk Utilization %",
         "title_size": "16",
         "title_align": "left",
         "precision": 1,
@@ -143,7 +143,7 @@
             }
           }
         ],
-        "title": "CPU Utilization by Replica (No Data - Query Needs Fix)",
+        "title": "CPU Utilization by Replica",
         "title_size": "16",
         "title_align": "left",
         "show_legend": true,
@@ -172,7 +172,7 @@
             }
           }
         ],
-        "title": "Memory Utilization by Replica (No Data - Query Needs Fix)",
+        "title": "Memory Utilization by Replica",
         "title_size": "16",
         "title_align": "left",
         "show_legend": true,
@@ -201,7 +201,7 @@
             }
           }
         ],
-        "title": "Disk Utilization by Replica (No Data - Query Needs Fix)",
+        "title": "Disk Utilization by Replica",
         "title_size": "16",
         "title_align": "left",
         "show_legend": true,
@@ -221,7 +221,7 @@
         "type": "timeseries",
         "requests": [
           {
-            "q": "avg:materialize.sql_cluster_replica_usage{col:memory_utilization_percent,$cluster_name} by {replica_name}",
+            "q": "avg:materialize.sql_cluster_replica_usage{col:memory_percent,$cluster_name} by {replica_name}",
             "display_type": "line",
             "style": {
               "palette": "dog_classic",
@@ -230,7 +230,7 @@
             }
           }
         ],
-        "title": "Heap Memory Utilization by Replica (No Data - Query Needs Fix)",
+        "title": "Heap Memory Utilization by Replica",
         "title_size": "16",
         "title_align": "left",
         "show_legend": true,
@@ -424,7 +424,7 @@
         "type": "timeseries",
         "requests": [
           {
-            "q": "avg:materialize.sql_object_freshness{col:approx_lag_ms,$cluster_name} by {object_name,object_type}",
+            "q": "avg:materialize.sql_object_freshness{col:lag_ms,$cluster_name} by {object_name,object_type}",
             "display_type": "line",
             "style": {
               "palette": "cool",
@@ -453,7 +453,20 @@
         "type": "timeseries",
         "requests": [
           {
-            "q": "avg:materialize.sql_replica_uptime{col:container_start_time_seconds,$cluster_name} by {replica_name}",
+            "formulas": [
+              {
+                "alias": "Uptime (hours)",
+                "formula": "query1 / 3600"
+              }
+            ],
+            "queries": [
+              {
+                "name": "query1",
+                "data_source": "metrics",
+                "query": "avg:materialize.sql_replica_uptime{col:uptime_seconds,$cluster_name} by {replica_name}"
+              }
+            ],
+            "response_format": "timeseries",
             "display_type": "line",
             "style": {
               "palette": "semantic",
@@ -462,12 +475,16 @@
             }
           }
         ],
-        "title": "Replica Uptime (container start time)",
+        "title": "Replica Uptime (hours)",
         "title_size": "16",
         "title_align": "left",
         "show_legend": true,
         "legend_layout": "auto",
-        "legend_columns": ["avg", "min", "max", "value"]
+        "legend_columns": ["avg", "min", "max", "value"],
+        "yaxis": {
+          "include_zero": true,
+          "scale": "linear"
+        }
       },
       "layout": {
         "x": 0,
