@@ -118,9 +118,9 @@ These instructions work for both **Materialize Cloud** and **self-managed Materi
 2. **Deploy SQL Exporter**:
    ```bash
    docker run -d \
-     -p 9399:9399 \
+     -p 9399:9237 \
      -v $(pwd)/sql_exporter/config.yml:/config.yml:ro \
-     burningalchemist/sql_exporter:latest \
+     ghcr.io/justwatchcom/sql_exporter:latest \
      -config.file=/config.yml
    ```
 
