@@ -1,0 +1,479 @@
+{
+  "title": "Materialize Overview",
+  "description": "Comprehensive monitoring dashboard for Materialize database metrics including clusters, replicas, sources, sinks, and query performance",
+  "layout_type": "ordered",
+  "template_variables": [
+    {
+      "name": "cluster_name",
+      "default": "*",
+      "prefix": "cluster_name"
+    },
+    {
+      "name": "replica_name",
+      "default": "*",
+      "prefix": "replica_name"
+    }
+  ],
+  "widgets": [
+    {
+      "id": 1,
+      "definition": {
+        "type": "note",
+        "content": "# Materialize Monitoring Dashboard\n\nThis dashboard provides comprehensive monitoring for your Materialize environment including:\n- Cluster and replica health\n- Resource utilization (CPU, Memory, Disk)\n- Source and sink statistics\n- Query performance metrics\n- Data freshness",
+        "background_color": "blue",
+        "font_size": "14",
+        "text_align": "left",
+        "vertical_align": "top",
+        "show_tick": false,
+        "tick_pos": "50%",
+        "tick_edge": "left",
+        "has_padding": true
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 12,
+        "height": 2
+      }
+    },
+    {
+      "id": 2,
+      "definition": {
+        "type": "note",
+        "content": "## 📊 Cluster Overview",
+        "background_color": "vivid_blue",
+        "font_size": "16",
+        "text_align": "left",
+        "vertical_align": "center",
+        "show_tick": false,
+        "has_padding": true
+      },
+      "layout": {
+        "x": 0,
+        "y": 2,
+        "width": 12,
+        "height": 1
+      }
+    },
+    {
+      "id": 3,
+      "definition": {
+        "type": "query_table",
+        "requests": [
+          {
+            "queries": [
+              {
+                "data_source": "metrics",
+                "name": "query1",
+                "query": "avg:materialize.sql_cluster_replicas{col:count,$cluster_name} by {cluster_id,cluster_name,replica_id,replica_name,size}",
+                "aggregator": "last"
+              }
+            ],
+            "response_format": "scalar",
+            "formulas": [
+              {
+                "formula": "query1",
+                "cell_display_mode": "number",
+                "alias": "Count"
+              }
+            ]
+          }
+        ],
+        "title": "Cluster Replicas",
+        "title_size": "16",
+        "title_align": "left",
+        "has_search_bar": "auto"
+      },
+      "layout": {
+        "x": 0,
+        "y": 3,
+        "width": 12,
+        "height": 4
+      }
+    },
+    {
+      "id": 4,
+      "definition": {
+        "type": "note",
+        "content": "## 💻 Resource Utilization",
+        "background_color": "vivid_purple",
+        "font_size": "16",
+        "text_align": "left",
+        "vertical_align": "center",
+        "show_tick": false,
+        "has_padding": true
+      },
+      "layout": {
+        "x": 0,
+        "y": 7,
+        "width": 12,
+        "height": 1
+      }
+    },
+    {
+      "id": 5,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_cluster_replica_usage{col:cpu_percent,$cluster_name} by {replica_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "dog_classic",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "CPU Utilization by Replica",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 8,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 6,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_cluster_replica_usage{col:memory_percent,$cluster_name} by {replica_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "dog_classic",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Memory Utilization by Replica",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 6,
+        "y": 8,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 7,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_cluster_replica_usage{col:disk_percent,$cluster_name} by {replica_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "dog_classic",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Disk Utilization by Replica",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 11,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 8,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_cluster_replica_usage{col:memory_percent,$cluster_name} by {replica_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "dog_classic",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Heap Memory Utilization by Replica",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 6,
+        "y": 11,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 9,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "per_second(avg:materialize.sql_source_statistics{col:updates_committed,*} by {source_name})",
+            "display_type": "line",
+            "style": {
+              "palette": "green",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Source Updates Rate (per second)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 14,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 10,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_source_statistics{col:offset_known,*} by {source_name} - avg:materialize.sql_source_statistics{col:offset_committed,*} by {source_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "warm",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Source Offset Lag",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 6,
+        "y": 14,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 11,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_source_statistics{col:rehydration_latency_seconds,*} by {source_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "purple",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Source Rehydration Latency (seconds)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 17,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 12,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_sink_statistics{col:messages_staged,*} by {sink_name} - avg:materialize.sql_sink_statistics{col:messages_committed,*} by {sink_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "orange",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Sink Uncommitted Messages",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 6,
+        "y": 17,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 13,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "max:materialize.sql_query_latency{col:max_latency,$cluster_name} by {cluster_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "red",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Max Query Latency by Cluster (ms)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 20,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 14,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_query_latency{col:avg_latency,$cluster_name} by {cluster_name}",
+            "display_type": "line",
+            "style": {
+              "palette": "blue",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Avg Query Latency by Cluster (ms)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 6,
+        "y": 20,
+        "width": 6,
+        "height": 3
+      }
+    },
+    {
+      "id": 15,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "q": "avg:materialize.sql_object_freshness{col:lag_ms,$cluster_name} by {object_name,object_type}",
+            "display_type": "line",
+            "style": {
+              "palette": "cool",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Object Freshness Lag (ms)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"]
+      },
+      "layout": {
+        "x": 0,
+        "y": 23,
+        "width": 12,
+        "height": 3
+      }
+    },
+    {
+      "id": 16,
+      "definition": {
+        "type": "timeseries",
+        "requests": [
+          {
+            "formulas": [
+              {
+                "alias": "Uptime (hours)",
+                "formula": "query1 / 3600"
+              }
+            ],
+            "queries": [
+              {
+                "name": "query1",
+                "data_source": "metrics",
+                "query": "avg:materialize.sql_replica_uptime{col:uptime_seconds,$cluster_name} by {replica_name}"
+              }
+            ],
+            "response_format": "timeseries",
+            "display_type": "line",
+            "style": {
+              "palette": "semantic",
+              "line_type": "solid",
+              "line_width": "normal"
+            }
+          }
+        ],
+        "title": "Replica Uptime (hours)",
+        "title_size": "16",
+        "title_align": "left",
+        "show_legend": true,
+        "legend_layout": "auto",
+        "legend_columns": ["avg", "min", "max", "value"],
+        "yaxis": {
+          "include_zero": true,
+          "scale": "linear"
+        }
+      },
+      "layout": {
+        "x": 0,
+        "y": 26,
+        "width": 12,
+        "height": 3
+      }
+    }
+  ]
+}

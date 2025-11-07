@@ -1,0 +1,34 @@
+# Datadog Agent Configuration for Materialize Monitoring
+# Documentation: https://docs.datadoghq.com/agent/guide/agent-configuration-files/
+
+# API Key is set via DD_API_KEY environment variable in docker-compose.yml
+# Site is set via DD_SITE environment variable in docker-compose.yml
+
+# Enable the OpenMetrics check
+use_dogstatsd: true
+
+# Log level (trace, debug, info, warn, error, critical, off)
+log_level: info
+
+# Tags to apply to all metrics
+tags:
+  - env:local
+  - service:materialize-monitoring
+  - source:sql_exporter
+
+# Enable OpenMetrics autodiscovery
+listeners:
+  - name: docker
+
+# Enable container collection
+container_cgroup_prefix: /host/sys/fs/cgroup
+container_proc_root: /host/proc
+
+# Disable unused features for local development
+apm_config:
+  enabled: false
+
+process_config:
+  enabled: false
+
+logs_enabled: false
