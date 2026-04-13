@@ -1,26 +1,15 @@
 ---
-# SQL Exporter Configuration for Materialize Cloud
+# SQL Exporter Configuration for Local Materialize (Docker Compose)
 #
-# IMPORTANT: This configuration is for Materialize Cloud environments.
-# For local development with Docker Compose, use config.local.yml
-#
-# Connection String Format:
-# postgres://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require
-#
-# Note: Escape special characters in username/password:
-#   @ becomes %40
-#   : becomes %3A
-#   Example: user@domain.com becomes user%40domain.com
-#
-# For production use, replace the placeholder connection string below
-# with your actual Materialize Cloud credentials.
+# This configuration connects to a local Materialize instance running in Docker.
+# For cloud environments, use config.yml instead.
 
 jobs:
 - name: "materialize"
   interval: '1m'
   connections:
-  # Replace with your Materialize Cloud connection string
-  - "postgres://username%40domain.com:password@servername.lb.us-east-1.aws.materialize.cloud:6875/materialize?sslmode=require"
+  # Local Materialize connection (docker-compose service name)
+  - "postgres://materialize@materialize:6875/materialize?sslmode=disable"
   queries:
   - name: "cluster_replicas"
     help: "Cluster replica info"

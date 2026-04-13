@@ -1,0 +1,26 @@
+# Prometheus Configuration for Materialize Monitoring
+# Scrapes metrics from SQL Exporter
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'materialize-monitoring'
+    environment: 'local'
+
+# Scrape configurations
+scrape_configs:
+  # SQL Exporter - Materialize metrics
+  - job_name: 'materialize'
+    scrape_interval: 60s
+    scrape_timeout: 50s
+    static_configs:
+      - targets: ['sql_exporter:9237']
+        labels:
+          service: 'materialize'
+          exporter: 'sql_exporter'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

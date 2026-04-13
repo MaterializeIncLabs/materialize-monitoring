@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # Local Materialize instance for testing
+  materialize:
+    image: materialize/materialized:latest
+    container_name: materialize
+    ports:
+      - "6875:6875"
+      - "6876:6876"
+    environment:
+      - MZ_SOFT_ASSERTIONS=1
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:6876/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - monitoring
+
+  # SQL Exporter - Collects metrics from Materialize
+  sql_exporter:
+    image: ghcr.io/justwatchcom/sql_exporter:latest
+    container_name: sql_exporter
+    ports:
+      - "9399:9237"
+    volumes:
+      - ./sql_exporter/config.local.yml:/config.yml:ro
+    environment:
+      - CONFIG=/config.yml
+    depends_on:
+      materialize:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9237/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - monitoring
+
+  # Prometheus - Time-series database for Grafana
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      sql_exporter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitoring
+
+  # Grafana - Dashboard visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monitoring
+
+  # Datadog Agent - Collects metrics via OpenMetrics for Datadog
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    container_name: datadog-agent
+    ports:
+      - "8125:8125/udp"  # DogStatsD
+      - "8126:8126/tcp"  # APM
+    volumes:
+      - ./datadog/datadog.yaml:/etc/datadog-agent/datadog.yaml:ro
+      - ./datadog/conf.d:/etc/datadog-agent/conf.d:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+    environment:
+      - DD_API_KEY=${DD_API_KEY:-}
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+      - DD_LOGS_ENABLED=${DD_LOGS_ENABLED:-false}
+      - DD_PROCESS_AGENT_ENABLED=${DD_PROCESS_AGENT_ENABLED:-false}
+      - DD_APM_ENABLED=${DD_APM_ENABLED:-false}
+      - DD_HOSTNAME=materialize-monitoring-local
+    depends_on:
+      sql_exporter:
+        condition: service_healthy
+    networks:
+      - monitoring
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
